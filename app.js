@@ -93,7 +93,7 @@
     el.textContent = msg;
     el.classList.add('show');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => el.classList.remove('show'), 1800);
+    toastTimer = setTimeout(() => el.classList.remove('show'), 2400);
   }
 
   // ------- Render -------
@@ -135,6 +135,7 @@
       const color = colorFor(ex);
 
       const quickAdds = (ex.quickAdds || [5, 10, 25]).slice(0, 4);
+      const firstQuick = quickAdds[0] || 5;
       const quickButtons = quickAdds.map(amt =>
         `<button class="quick-btn" data-action="add" data-id="${ex.id}" data-amount="${amt}">+${amt}</button>`
       ).join('');
@@ -155,7 +156,8 @@
           <div class="quick-actions">
             ${quickButtons}
             <button class="quick-btn custom" data-action="custom" data-id="${ex.id}">Custom</button>
-            ${done > 0 ? `<button class="quick-btn undo" data-action="undo" data-id="${ex.id}" aria-label="Undo last log">↶</button>` : ''}
+            <button class="quick-btn dec" data-action="add" data-id="${ex.id}" data-amount="-${firstQuick}" aria-label="Subtract ${firstQuick}">−${firstQuick}</button>
+            ${completed ? '' : `<button class="quick-btn done" data-action="done" data-id="${ex.id}">✓ Done</button>`}
           </div>
         </div>
       `;
@@ -522,11 +524,12 @@
         logAmount(id, Number(btn.dataset.amount));
       } else if (action === 'custom') {
         openLogModal(id);
-      } else if (action === 'undo') {
+      } else if (action === 'done') {
         const ex = state.exercises.find(x => x.id === id);
         if (ex) {
           const cur = ex.logs[todayKey()] || 0;
-          logAmount(id, -Math.min(cur, ex.quickAdds?.[0] || 5));
+          const remaining = Math.max(0, ex.goal - cur);
+          if (remaining > 0) logAmount(id, remaining);
         }
       } else if (action === 'detail') {
         openDetail(id);

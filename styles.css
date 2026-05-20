@@ -263,7 +263,10 @@ input { font-family: inherit; }
 .quick-btn:hover { background: #2a2a31; }
 .quick-btn:active { transform: scale(0.96); }
 .quick-btn.custom { background: transparent; border: 1px dashed var(--border); color: var(--text-muted); }
-.quick-btn.undo { background: transparent; color: var(--text-faint); flex: 0 0 auto; min-width: 0; padding: 9px 12px; }
+.quick-btn.dec { background: var(--surface-2); color: var(--text-muted); flex: 0 0 auto; min-width: 0; padding: 9px 14px; font-weight: 600; }
+.quick-btn.dec:hover { background: #2a2a31; }
+.quick-btn.done { background: var(--primary); color: #0a0a0a; font-weight: 700; flex: 0 0 auto; padding: 9px 14px; }
+.quick-btn.done:hover { background: #d4ab4a; }
 
 @keyframes pop {
   0% { transform: scale(0); }
@@ -612,9 +615,9 @@ input { font-family: inherit; }
 /* Toast */
 .toast {
   position: fixed;
-  bottom: max(24px, env(safe-area-inset-bottom));
+  top: calc(env(safe-area-inset-top, 0px) + 16px);
   left: 50%;
-  transform: translateX(-50%) translateY(120%);
+  transform: translateX(-50%) translateY(-200%);
   background: var(--text);
   color: var(--bg);
   padding: 12px 18px;
@@ -623,10 +626,11 @@ input { font-family: inherit; }
   font-weight: 600;
   box-shadow: var(--shadow-lg);
   z-index: 200;
-  transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+  opacity: 0;
+  transition: transform 0.3s cubic-bezier(0.22, 0.61, 0.36, 1), opacity 0.3s ease;
   white-space: nowrap;
   pointer-events: none;
 }
-.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
 
 .hidden { display: none !important; }
