@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#16161a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Hero Training Tracker</title>
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-inner">
+        <h1 class="app-title">
+          <span class="logo-mark">⚡</span>
+          Hero Training
+        </h1>
+        <nav class="tabs" role="tablist">
+          <button class="tab active" data-view="today" role="tab">Today</button>
+          <button class="tab" data-view="history" role="tab">History</button>
+          <button class="tab" data-view="manage" role="tab">Manage</button>
+        </nav>
+      </div>
+    </header>
+
+    <main class="main">
+      <!-- TODAY view -->
+      <section class="view view-today active" data-view="today">
+        <div class="day-header">
+          <div>
+            <p class="day-label" id="dayLabel"></p>
+            <h2 class="day-date" id="dayDate"></h2>
+          </div>
+          <div class="day-stats">
+            <div class="stat">
+              <span class="stat-value" id="completedToday">0</span>
+              <span class="stat-label">done</span>
+            </div>
+            <div class="stat">
+              <span class="stat-value" id="totalToday">0</span>
+              <span class="stat-label">total</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="exerciseList" class="exercise-list"></div>
+
+        <div id="emptyState" class="empty-state hidden">
+          <div class="empty-icon">🏋️</div>
+          <h3>No exercises yet</h3>
+          <p>Add your first exercise or habit to start tracking.</p>
+          <button class="btn btn-primary" id="emptyAddBtn">Add exercise</button>
+        </div>
+      </section>
+
+      <!-- HISTORY view -->
+      <section class="view view-history" data-view="history">
+        <h2 class="section-title">Last 30 days</h2>
+        <div id="historyContent" class="history-content"></div>
+      </section>
+
+      <!-- MANAGE view -->
+      <section class="view view-manage" data-view="manage">
+        <div class="manage-header">
+          <h2 class="section-title">Your exercises</h2>
+          <button class="btn btn-primary" id="addExerciseBtn">+ Add</button>
+        </div>
+        <div id="manageList" class="manage-list"></div>
+
+        <h2 class="section-title" style="margin-top:32px">Notifications</h2>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div>
+              <p class="settings-label">Browser notifications</p>
+              <p class="settings-hint" id="notifStatusHint">Enable to receive reminders.</p>
+            </div>
+            <button class="btn btn-secondary" id="enableNotifBtn">Enable</button>
+          </div>
+        </div>
+
+        <h2 class="section-title" style="margin-top:32px">Data</h2>
+        <div class="settings-card">
+          <div class="settings-row">
+            <div>
+              <p class="settings-label">Export data</p>
+              <p class="settings-hint">Download a JSON backup of all your tracking data.</p>
+            </div>
+            <button class="btn btn-secondary" id="exportBtn">Export</button>
+          </div>
+          <div class="settings-row">
+            <div>
+              <p class="settings-label">Import data</p>
+              <p class="settings-hint">Restore from a JSON backup.</p>
+            </div>
+            <button class="btn btn-secondary" id="importBtn">Import</button>
+            <input type="file" id="importFile" accept="application/json" hidden />
+          </div>
+          <div class="settings-row danger">
+            <div>
+              <p class="settings-label">Reset everything</p>
+              <p class="settings-hint">Deletes all exercises and history. Can't be undone.</p>
+            </div>
+            <button class="btn btn-danger" id="resetBtn">Reset</button>
+          </div>
+        </div>
+
+        <p class="footer-note">Stored locally in your browser. No account, no server.</p>
+      </section>
+    </main>
+
+    <!-- Exercise detail modal -->
+    <div class="modal-overlay hidden" id="detailModal">
+      <div class="modal" role="dialog" aria-modal="true">
+        <button class="modal-close" data-close="detail">✕</button>
+        <div id="detailContent"></div>
+      </div>
+    </div>
+
+    <!-- Add/Edit exercise modal -->
+    <div class="modal-overlay hidden" id="editModal">
+      <div class="modal" role="dialog" aria-modal="true">
+        <button class="modal-close" data-close="edit">✕</button>
+        <h3 class="modal-title" id="editModalTitle">New exercise</h3>
+        <form id="editForm" class="form">
+          <label class="form-field">
+            <span class="form-label">Name</span>
+            <input type="text" id="fieldName" required maxlength="40" placeholder="Pushups, meditation, water…" />
+          </label>
+          <label class="form-field">
+            <span class="form-label">Daily goal</span>
+            <input type="number" id="fieldGoal" required min="1" max="100000" placeholder="100" />
+          </label>
+          <label class="form-field">
+            <span class="form-label">Unit</span>
+            <input type="text" id="fieldUnit" maxlength="20" placeholder="reps, minutes, glasses…" />
+          </label>
+          <label class="form-field">
+            <span class="form-label">Icon (emoji)</span>
+            <input type="text" id="fieldIcon" maxlength="4" placeholder="💪" />
+          </label>
+          <label class="form-field">
+            <span class="form-label">Color</span>
+            <div class="color-options" id="colorOptions"></div>
+          </label>
+          <label class="form-field">
+            <span class="form-label">Quick-add buttons (comma-separated)</span>
+            <input type="text" id="fieldQuickAdds" placeholder="5, 10, 25" />
+            <span class="field-hint">Tap these to log increments fast.</span>
+          </label>
+          <label class="form-field">
+            <span class="form-label">Reminder time</span>
+            <input type="time" id="fieldNotifTime" />
+            <label class="checkbox-inline">
+              <input type="checkbox" id="fieldNotifEnabled" />
+              <span>Send a reminder at this time</span>
+            </label>
+          </label>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="editCancelBtn">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Custom-log modal -->
+    <div class="modal-overlay hidden" id="logModal">
+      <div class="modal modal-small" role="dialog" aria-modal="true">
+        <button class="modal-close" data-close="log">✕</button>
+        <h3 class="modal-title" id="logModalTitle">Log amount</h3>
+        <form id="logForm" class="form">
+          <label class="form-field">
+            <span class="form-label">How much?</span>
+            <input type="number" id="logAmount" required min="1" max="100000" autofocus />
+          </label>
+          <div class="form-actions">
+            <button type="button" class="btn btn-ghost" id="logCancelBtn">Cancel</button>
+            <button type="submit" class="btn btn-primary">Log it</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Toast -->
+    <div class="toast" id="toast" aria-live="polite"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+{
+  "name": "Hero Training Tracker",
+  "short_name": "Hero Training",
+  "description": "Track daily exercises and habits with streaks, calendar history, and reminders.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0a0a0a",
+  "theme_color": "#16161a",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
