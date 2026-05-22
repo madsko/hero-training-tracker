@@ -39,13 +39,20 @@
   let state = loadState();
 
   // ------- Date helpers -------
+  // Days roll over at 4 AM — a log made between midnight and 4 AM counts as the previous day.
+  const ROLLOVER_HOUR = 4;
   const pad = n => String(n).padStart(2, '0');
   function ymd(d) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
-  const todayKey = () => ymd(new Date());
-  function daysAgo(n) {
+  function effectiveNow() {
     const d = new Date();
+    d.setHours(d.getHours() - ROLLOVER_HOUR);
+    return d;
+  }
+  const todayKey = () => ymd(effectiveNow());
+  function daysAgo(n) {
+    const d = effectiveNow();
     d.setDate(d.getDate() - n);
     return d;
   }
@@ -106,7 +113,7 @@
   }
 
   function renderDayHeader() {
-    const now = new Date();
+    const now = effectiveNow();
     document.getElementById('dayLabel').textContent = 'Today';
     document.getElementById('dayDate').textContent = formatPrettyDate(now);
 
@@ -488,17 +495,17 @@
     }
   }
 
-  // Clear firedToday at midnight so tomorrow's reminders fire.
-  function scheduleMidnightReset() {
+  // Clear firedToday and re-render at the day rollover so the new day appears.
+  function scheduleRolloverReset() {
     const now = new Date();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(now.getDate() + 1);
-    tomorrow.setHours(0, 0, 30, 0);
-    const ms = tomorrow - now;
+    const next = new Date(now);
+    next.setHours(ROLLOVER_HOUR, 0, 30, 0);
+    if (next <= now) next.setDate(next.getDate() + 1);
+    const ms = next - now;
     setTimeout(() => {
       firedToday.clear();
       render();
-      scheduleMidnightReset();
+      scheduleRolloverReset();
     }, ms);
   }
 
@@ -690,7 +697,7 @@
     // Also check immediately so a reload at the right minute still fires.
     tick();
 
-    scheduleMidnightReset();
+    scheduleRolloverReset();
 
     // Service worker — for offline caching. Best effort; won't break anything.
     if ('serviceWorker' in navigator) {
