@@ -93,6 +93,48 @@
     return best;
   }
 
+  // Debt: each day, unmet goal accrues; overshoot pays it down;
+  // then the running balance halves (50% rolls forward).
+  function currentDebt(ex) {
+    if (!ex.goal) return 0;
+    const keys = Object.keys(ex.logs).sort();
+    if (keys.length === 0) return 0;
+    const todayK = todayKey();
+    let debt = 0;
+    const start = new Date(keys[0] + 'T00:00:00');
+    const today = new Date(todayK + 'T00:00:00');
+    for (let d = new Date(start); d < today; d.setDate(d.getDate() + 1)) {
+      const k = ymd(d);
+      const log = ex.logs[k] || 0;
+      debt = Math.max(0, debt - Math.max(0, log - ex.goal));
+      debt += Math.max(0, ex.goal - log);
+      debt *= 0.5;
+    }
+    const todayLog = ex.logs[todayK] || 0;
+    debt = Math.max(0, debt - Math.max(0, todayLog - ex.goal));
+    return Math.round(debt);
+  }
+
+  // Global streak: consecutive days where every exercise that existed on
+  // that day hit its goal. Today not-yet-complete doesn't break the streak.
+  function globalStreak() {
+    if (state.exercises.length === 0) return 0;
+    let streak = 0;
+    for (let i = 0; i < 365; i++) {
+      const key = ymd(daysAgo(i));
+      const relevant = state.exercises.filter(ex => {
+        if (!ex.createdAt) return true;
+        return ymd(new Date(ex.createdAt)) <= key;
+      });
+      if (relevant.length === 0) break;
+      const allDone = relevant.every(ex => isComplete(ex, key));
+      if (allDone) streak++;
+      else if (i === 0) continue;
+      else break;
+    }
+    return streak;
+  }
+
   // ------- Toast -------
   let toastTimer = null;
   function toast(msg) {
@@ -121,6 +163,15 @@
     const completed = state.exercises.filter(ex => isComplete(ex, key)).length;
     document.getElementById('completedToday').textContent = completed;
     document.getElementById('totalToday').textContent = state.exercises.length;
+
+    const streakEl = document.getElementById('streakStat');
+    const streak = globalStreak();
+    if (streak > 0) {
+      document.getElementById('streakValue').textContent = streak;
+      streakEl.hidden = false;
+    } else {
+      streakEl.hidden = true;
+    }
   }
 
   function renderToday() {
@@ -139,6 +190,7 @@
       const pct = Math.min(100, Math.round((done / ex.goal) * 100));
       const completed = done >= ex.goal;
       const streak = currentStreak(ex);
+      const debt = currentDebt(ex);
       const color = colorFor(ex);
 
       const quickAdds = (ex.quickAdds || [5, 10, 25]).slice(0, 4);
@@ -153,7 +205,7 @@
             <div class="card-icon" style="background: ${color.soft}; color: ${color.hex};">${escapeHTML(ex.icon || '⭐')}</div>
             <div class="card-info">
               <h3 class="card-name">${escapeHTML(ex.name)}</h3>
-              <p class="card-progress-text"><strong>${done}</strong> / ${ex.goal} ${escapeHTML(ex.unit || '')}</p>
+              <p class="card-progress-text"><strong>${done}</strong> / ${ex.goal} ${escapeHTML(ex.unit || '')}${debt > 0 ? ` <span class="card-debt">· ${debt} debt</span>` : ''}</p>
             </div>
             ${streak > 0 ? `<span class="card-streak ${streak > 0 ? 'active' : ''}">🔥 ${streak}</span>` : ''}
           </div>
@@ -240,12 +292,13 @@
     }
     list.innerHTML = state.exercises.map(ex => {
       const color = colorFor(ex);
+      const debt = currentDebt(ex);
       return `
         <div class="manage-item" data-id="${ex.id}">
           <div class="card-icon" style="background: ${color.soft}; color: ${color.hex};">${escapeHTML(ex.icon || '⭐')}</div>
           <div class="info">
             <p class="info-name">${escapeHTML(ex.name)}</p>
-            <p class="info-sub">${ex.goal} ${escapeHTML(ex.unit || '')} / day${ex.notificationEnabled && ex.notificationTime ? ` · ⏰ ${ex.notificationTime}` : ''}</p>
+            <p class="info-sub">${ex.goal} ${escapeHTML(ex.unit || '')} / day${ex.notificationEnabled && ex.notificationTime ? ` · ⏰ ${ex.notificationTime}` : ''}${debt > 0 ? ` · <span class="card-debt">${debt} debt</span>` : ''}</p>
           </div>
           <button class="icon-btn" data-manage="edit" data-id="${ex.id}" title="Edit">✎</button>
           <button class="icon-btn danger" data-manage="delete" data-id="${ex.id}" title="Delete">🗑</button>
@@ -371,6 +424,7 @@
     const key = todayKey();
     const done = ex.logs[key] || 0;
     const pct = Math.min(100, Math.round((done / ex.goal) * 100));
+    const debt = currentDebt(ex);
 
     const days = [];
     for (let i = 29; i >= 0; i--) {
@@ -400,6 +454,7 @@
       <p style="text-align:center; margin: 0 0 16px; font-size:14px; color: var(--text-muted);">
         <strong style="color:var(--text); font-size:18px;">${done}</strong> / ${ex.goal} today
       </p>
+      ${debt > 0 ? `<div class="detail-debt-banner">⚠ ${debt} ${escapeHTML(ex.unit || '')} in debt — log extra to pay it down</div>` : ''}
       <div class="detail-stats">
         <div class="detail-stat">
           <span class="detail-stat-value">${currentStreak(ex)}</span>
