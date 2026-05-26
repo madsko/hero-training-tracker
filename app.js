@@ -161,8 +161,7 @@
 
     const key = todayKey();
     const completed = state.exercises.filter(ex => isComplete(ex, key)).length;
-    document.getElementById('completedToday').textContent = completed;
-    document.getElementById('totalToday').textContent = state.exercises.length;
+    document.getElementById('completedToday').textContent = `${completed} / ${state.exercises.length}`;
 
     const streakEl = document.getElementById('streakStat');
     const streak = globalStreak();
