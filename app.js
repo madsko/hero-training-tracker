@@ -319,7 +319,7 @@
     if (perm === 'granted' && state.settings.notificationsEnabled) {
       btn.textContent = 'Enabled';
       btn.classList.add('btn-secondary');
-      hint.textContent = 'You\'ll see reminders for exercises with a time set.';
+      hint.textContent = 'Reminders only fire while the app is open — iOS pauses background timers.';
     } else if (perm === 'denied') {
       btn.textContent = 'Blocked';
       btn.disabled = true;
@@ -327,7 +327,7 @@
     } else {
       btn.textContent = 'Enable';
       btn.disabled = false;
-      hint.textContent = 'Enable to receive reminders at the times you set per exercise.';
+      hint.textContent = 'Enable to receive in-app reminders. They only fire while the app is open.';
     }
   }
 
@@ -510,7 +510,7 @@
       state.settings.notificationsEnabled = true;
       saveState();
       toast('Notifications enabled');
-      new Notification('Hero Training', { body: "You're set! We'll remind you for exercises with a time." });
+      new Notification('Hero Training', { body: 'Reminders will fire while the app is open.' });
     } else {
       toast('Permission not granted');
     }
