@@ -13,14 +13,27 @@
 
   // Pool the daily random challenge rotates through.
   const CHALLENGES = [
-    { name: 'Plank hold',            goal: 60, unit: 'sec',      icon: '⏱️' },
-    { name: 'Wall sit',              goal: 90, unit: 'sec',      icon: '🧱' },
-    { name: 'Side plank',            goal: 60, unit: 'sec/side', icon: '➕' },
-    { name: 'Tricep dips',           goal: 20, unit: 'reps',     icon: '💺' },
-    { name: 'Deep squat hold',       goal: 60, unit: 'sec',      icon: '🧘' },
-    { name: 'Diamond grip push-ups', goal: 20, unit: 'reps',     icon: '💎' },
-    { name: 'Tricep push-ups',       goal: 10, unit: 'reps',     icon: '🔻' },
-    { name: 'Handstand push-ups',    goal: 10, unit: 'reps',     icon: '🤸' },
+    { name: 'Plank hold',                   goal: 60, unit: 'sec',      icon: '⏱️' },
+    { name: 'Wall sit',                     goal: 90, unit: 'sec',      icon: '🧱' },
+    { name: 'Side plank',                   goal: 60, unit: 'sec/side', icon: '➕' },
+    { name: 'Tricep dips',                  goal: 20, unit: 'reps',     icon: '💺' },
+    { name: 'Deep squat hold',              goal: 60, unit: 'sec',      icon: '🧘' },
+    { name: 'Diamond grip push-ups',        goal: 20, unit: 'reps',     icon: '💎' },
+    { name: 'Tricep push-ups',              goal: 10, unit: 'reps',     icon: '🔻' },
+    { name: 'Handstand push-ups',           goal: 10, unit: 'reps',     icon: '🤸' },
+    { name: 'Pike push-up',                 goal: 10, unit: 'reps',     icon: '📐' },
+    { name: 'Wall handstand hold',          goal: 30, unit: 'sec',      icon: '🙃' },
+    { name: 'Pistol squat',                 goal: 5,  unit: 'reps/leg', icon: '🔫' },
+    { name: 'Crow pose hold',               goal: 20, unit: 'sec',      icon: '🐦' },
+    { name: 'Cossack squat',                goal: 10, unit: 'reps',     icon: '🕺' },
+    { name: 'Wall walk',                    goal: 3,  unit: 'reps',     icon: '🧗' },
+    { name: 'Single-leg glute bridge hold', goal: 30, unit: 'sec/side', icon: '🍑' },
+    { name: 'Bulgarian split squat hold',   goal: 30, unit: 'sec/side', icon: '🦵' },
+    { name: 'Couch stretch',                goal: 60, unit: 'sec/side', icon: '🛋️' },
+    { name: 'Frog stretch hold',            goal: 60, unit: 'sec',      icon: '🐸' },
+    { name: '90/90 hip switch',             goal: 10, unit: 'reps',     icon: '🔄' },
+    { name: 'Lizard pose',                  goal: 45, unit: 'sec/side', icon: '🦎' },
+    { name: 'Frog stand',                   goal: 30, unit: 'sec',      icon: '🪷' },
   ];
 
   function challengeForDay(dateKey) {
