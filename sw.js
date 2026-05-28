@@ -1,7 +1,7 @@
 // Hero Training Tracker — minimal service worker for offline caching.
 // Strategy: cache-first for the app shell; network-fallback then cache.
 
-const CACHE = 'hero-training-v8';
+const CACHE = 'hero-training-v9';
 const SHELL = [
   './',
   './index.html',

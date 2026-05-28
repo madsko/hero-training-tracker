@@ -13,26 +13,11 @@
 
   // Pool the daily random challenge rotates through.
   const CHALLENGES = [
-    { name: 'Push-ups',          goal: 30,  unit: 'reps',     icon: '💪' },
-    { name: 'Squats',            goal: 50,  unit: 'reps',     icon: '🦵' },
-    { name: 'Plank hold',        goal: 60,  unit: 'sec',      icon: '⏱️' },
-    { name: 'Burpees',           goal: 15,  unit: 'reps',     icon: '🔥' },
-    { name: 'Lunges',            goal: 30,  unit: 'reps',     icon: '🚶' },
-    { name: 'Mountain climbers', goal: 50,  unit: 'reps',     icon: '⛰️' },
-    { name: 'Jumping jacks',     goal: 100, unit: 'reps',     icon: '⭐' },
-    { name: 'Wall sit',          goal: 90,  unit: 'sec',      icon: '🧱' },
-    { name: 'Glute bridges',     goal: 30,  unit: 'reps',     icon: '🌉' },
-    { name: 'Russian twists',    goal: 50,  unit: 'reps',     icon: '🌀' },
-    { name: 'Superman hold',     goal: 30,  unit: 'sec',      icon: '🦸' },
-    { name: 'Bicycle crunches',  goal: 40,  unit: 'reps',     icon: '🚴' },
-    { name: 'High knees',        goal: 60,  unit: 'sec',      icon: '👟' },
-    { name: 'Calf raises',       goal: 50,  unit: 'reps',     icon: '🦶' },
-    { name: 'Side plank',        goal: 45,  unit: 'sec/side', icon: '➕' },
-    { name: 'Tricep dips',       goal: 20,  unit: 'reps',     icon: '💺' },
-    { name: 'Stair climbs',      goal: 3,   unit: 'min',      icon: '🪜' },
-    { name: 'Deep squat hold',   goal: 60,  unit: 'sec',      icon: '🧘' },
-    { name: 'Bear crawl',        goal: 30,  unit: 'sec',      icon: '🐻' },
-    { name: 'Sun salutations',   goal: 5,   unit: 'rounds',   icon: '☀️' },
+    { name: 'Plank hold',      goal: 60, unit: 'sec',      icon: '⏱️' },
+    { name: 'Wall sit',        goal: 90, unit: 'sec',      icon: '🧱' },
+    { name: 'Side plank',      goal: 60, unit: 'sec/side', icon: '➕' },
+    { name: 'Tricep dips',     goal: 20, unit: 'reps',     icon: '💺' },
+    { name: 'Deep squat hold', goal: 60, unit: 'sec',      icon: '🧘' },
   ];
 
   function challengeForDay(dateKey) {
