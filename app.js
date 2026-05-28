@@ -3,6 +3,7 @@
 
 (() => {
   const STORAGE_KEY = 'hero-training-tracker-v1';
+  const VAPID_PUBLIC_KEY = 'BF_g8nDRYem3OISBeFWmsDNS1K-yWu-10BRj_WaJvFmxP4C9DApeA1MW4f6RqkMEEGXPL6S9kQLjYXB24VN-OfY';
   const COLORS = [
     { name: 'yellow', hex: '#e9bf5c', soft: 'rgba(233, 191, 92, 0.18)' },
     { name: 'red',    hex: '#9c3c37', soft: 'rgba(156, 60, 55, 0.22)' },
@@ -215,6 +216,7 @@
     renderManage();
     renderDefaultMode();
     updateNotifStatus();
+    renderDailyReminderRow();
   }
 
   function renderDailyChallenge() {
@@ -657,7 +659,96 @@
     logTargetId = null;
   }
 
-  // ------- Notifications -------
+  // ------- Daily push reminder (real, server-driven) -------
+  function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const raw = atob(base64);
+    return Uint8Array.from([...raw].map(c => c.charCodeAt(0)));
+  }
+
+  async function getCurrentPushSub() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) return null;
+    const reg = await navigator.serviceWorker.ready;
+    return reg.pushManager.getSubscription();
+  }
+
+  async function enableDailyReminder() {
+    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      toast('Push not supported in this browser');
+      return;
+    }
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') { toast('Permission not granted'); return; }
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const existing = await reg.pushManager.getSubscription();
+      const sub = existing || await reg.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+      });
+      const resp = await fetch('/api/subscribe', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sub),
+      });
+      if (!resp.ok) throw new Error('subscribe failed');
+      toast('Daily 10:00 reminder enabled');
+      renderDailyReminderRow();
+    } catch (e) {
+      console.warn('enableDailyReminder failed', e);
+      toast('Could not enable reminder');
+    }
+  }
+
+  async function disableDailyReminder() {
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await fetch('/api/unsubscribe', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ endpoint: sub.endpoint }),
+        }).catch(() => {});
+        await sub.unsubscribe();
+      }
+      toast('Daily reminder disabled');
+      renderDailyReminderRow();
+    } catch (e) {
+      console.warn('disableDailyReminder failed', e);
+    }
+  }
+
+  async function renderDailyReminderRow() {
+    const btn = document.getElementById('dailyReminderBtn');
+    const hint = document.getElementById('dailyReminderHint');
+    if (!btn || !hint) return;
+    if (!('Notification' in window) || !('PushManager' in window)) {
+      btn.textContent = 'Not supported';
+      btn.disabled = true;
+      hint.textContent = "This browser doesn't support push notifications.";
+      return;
+    }
+    if (Notification.permission === 'denied') {
+      btn.textContent = 'Blocked';
+      btn.disabled = true;
+      hint.textContent = 'Notifications are blocked in your browser settings.';
+      return;
+    }
+    const sub = await getCurrentPushSub();
+    if (sub) {
+      btn.textContent = 'Disable';
+      btn.dataset.action = 'disable-daily';
+      hint.textContent = 'Daily push at 10:00 Amsterdam time. Works even if the app is closed.';
+    } else {
+      btn.textContent = 'Enable';
+      btn.dataset.action = 'enable-daily';
+      hint.textContent = 'Send a daily push at 10:00 Amsterdam time, even when the app is closed.';
+    }
+  }
+
+  // ------- Notifications (foreground only — kept for per-exercise reminders) -------
   async function requestNotifications() {
     if (!('Notification' in window)) return;
     const perm = await Notification.requestPermission();
@@ -861,6 +952,11 @@
 
     // Notifications
     document.getElementById('enableNotifBtn').addEventListener('click', requestNotifications);
+    document.getElementById('dailyReminderBtn').addEventListener('click', (e) => {
+      const action = e.currentTarget.dataset.action;
+      if (action === 'enable-daily') enableDailyReminder();
+      else if (action === 'disable-daily') disableDailyReminder();
+    });
 
     // Data export / import / reset
     document.getElementById('exportBtn').addEventListener('click', () => {
