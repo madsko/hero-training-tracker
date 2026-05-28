@@ -53,9 +53,15 @@
   function modeFor(dateKey) {
     return state.challengeModes[dateKey] || state.challengeMode || 'medium';
   }
+  // Round to a "nice" training number: nearest 1 below 10, nearest 5 below 50, nearest 10 above.
+  function niceRound(n) {
+    if (n < 10) return Math.max(1, Math.round(n));
+    if (n < 50) return Math.round(n / 5) * 5;
+    return Math.round(n / 10) * 10;
+  }
   function scaledGoal(base, modeId) {
     const m = MODES.find(x => x.id === modeId) || MODES[1];
-    return Math.max(1, Math.round(base * m.mult));
+    return niceRound(base * m.mult);
   }
 
   // ------- State -------
