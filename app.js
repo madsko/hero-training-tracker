@@ -75,27 +75,151 @@
     settings: { notificationsEnabled: false },
   });
 
+  function repairShape(s) {
+    if (!s.exercises) s.exercises = [];
+    if (!s.challengeLogs) s.challengeLogs = {};
+    if (!s.challengeMode) s.challengeMode = 'medium';
+    if (!s.challengeModes) s.challengeModes = {};
+    if (!('celebratedToday' in s)) s.celebratedToday = '';
+    if (!s.settings) s.settings = { notificationsEnabled: false };
+    return s;
+  }
+
   function loadState() {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaultState();
-      const parsed = JSON.parse(raw);
-      // Light shape repair so older partial states don't crash.
-      if (!parsed.exercises) parsed.exercises = [];
-      if (!parsed.challengeLogs) parsed.challengeLogs = {};
-      if (!parsed.challengeMode) parsed.challengeMode = 'medium';
-      if (!parsed.challengeModes) parsed.challengeModes = {};
-      if (!('celebratedToday' in parsed)) parsed.celebratedToday = '';
-      if (!parsed.settings) parsed.settings = { notificationsEnabled: false };
-      return parsed;
+      return repairShape(JSON.parse(raw));
     } catch (e) {
       console.warn('Failed to load state, starting fresh.', e);
       return defaultState();
     }
   }
 
-  function saveState() {
+  function saveStateLocal() {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  }
+
+  function saveState() {
+    saveStateLocal();
+    scheduleSync();
+  }
+
+  // ------- Cloud sync -------
+  function stateForSync() {
+    const { syncToken, lastSyncedAt, ...rest } = state;
+    return rest;
+  }
+  function generateSyncToken() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+    return 't-' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+  let syncTimer = null;
+  function scheduleSync() {
+    if (!state.syncToken) return;
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(pushState, 1500);
+  }
+  async function pushState() {
+    if (!state.syncToken) return;
+    try {
+      const r = await fetch('/api/state', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'X-Sync-Token': state.syncToken },
+        body: JSON.stringify(stateForSync()),
+      });
+      if (r.ok) {
+        const data = await r.json();
+        state.lastSyncedAt = data.updatedAt;
+        saveStateLocal();
+      }
+    } catch (e) { console.warn('sync push failed', e); }
+  }
+  async function pullState({ force = false } = {}) {
+    if (!state.syncToken) return 'no-token';
+    try {
+      const r = await fetch('/api/state', { headers: { 'X-Sync-Token': state.syncToken } });
+      if (!r.ok) return 'error';
+      const data = await r.json();
+      if (!data || !data.state) return 'empty';
+      if (!force && state.lastSyncedAt && data.updatedAt <= state.lastSyncedAt) return 'nochange';
+      const repaired = repairShape({ ...data.state });
+      state = { ...repaired, syncToken: state.syncToken, lastSyncedAt: data.updatedAt };
+      saveStateLocal();
+      render();
+      return 'fetched';
+    } catch (e) { console.warn('sync pull failed', e); return 'error'; }
+  }
+  async function enableSync() {
+    state.syncToken = generateSyncToken();
+    saveStateLocal();
+    await pushState();
+    renderSyncRow();
+    toast('Cloud sync enabled');
+  }
+  async function linkSync(input) {
+    const token = (input || '').trim();
+    if (token.length < 8) { toast('Invalid token'); return; }
+    state.syncToken = token;
+    saveStateLocal();
+    const result = await pullState({ force: true });
+    if (result === 'fetched') {
+      toast('Linked — pulled cloud data');
+    } else if (result === 'empty') {
+      await pushState();
+      toast('Linked — uploaded local data');
+    } else {
+      toast('Linked (offline?) — will sync later');
+    }
+    renderSyncRow();
+  }
+  function disableSync() {
+    if (!confirm('Unlink this device from cloud sync? Your local data stays, but new changes won\'t sync.')) return;
+    delete state.syncToken;
+    delete state.lastSyncedAt;
+    saveStateLocal();
+    renderSyncRow();
+    toast('Sync disabled on this device');
+  }
+  function renderSyncRow() {
+    const row = document.getElementById('syncRow');
+    if (!row) return;
+    if (state.syncToken) {
+      const short = state.syncToken.length > 14
+        ? state.syncToken.slice(0, 8) + '…' + state.syncToken.slice(-4)
+        : state.syncToken;
+      row.innerHTML = `
+        <div>
+          <p class="settings-label">Cloud sync on</p>
+          <p class="settings-hint">Token: <code>${escapeHTML(short)}</code> — paste on other devices to link.</p>
+        </div>
+        <div class="sync-actions">
+          <button class="btn btn-secondary" id="copySyncTokenBtn">Copy token</button>
+          <button class="btn btn-ghost" id="disableSyncBtn">Unlink</button>
+        </div>
+      `;
+      document.getElementById('copySyncTokenBtn').addEventListener('click', async () => {
+        try { await navigator.clipboard.writeText(state.syncToken); toast('Token copied'); }
+        catch { prompt('Copy your sync token:', state.syncToken); }
+      });
+      document.getElementById('disableSyncBtn').addEventListener('click', disableSync);
+    } else {
+      row.innerHTML = `
+        <div>
+          <p class="settings-label">Cloud sync</p>
+          <p class="settings-hint">Sync exercises and logs across devices. A private token links them.</p>
+        </div>
+        <div class="sync-actions">
+          <button class="btn btn-primary" id="enableSyncBtn">Enable</button>
+          <button class="btn btn-secondary" id="linkSyncBtn">Link existing</button>
+        </div>
+      `;
+      document.getElementById('enableSyncBtn').addEventListener('click', enableSync);
+      document.getElementById('linkSyncBtn').addEventListener('click', () => {
+        const t = prompt('Paste the sync token from your other device:');
+        if (t) linkSync(t);
+      });
+    }
   }
 
   let state = loadState();
@@ -217,6 +341,7 @@
     renderDefaultMode();
     updateNotifStatus();
     renderDailyReminderRow();
+    renderSyncRow();
   }
 
   function renderDailyChallenge() {
@@ -980,14 +1105,7 @@
         const data = JSON.parse(text);
         if (!data || !Array.isArray(data.exercises)) throw new Error('Invalid file');
         if (!confirm('Replace current data with this backup?')) return;
-        state = {
-          exercises: data.exercises,
-          challengeLogs: data.challengeLogs || {},
-          challengeMode: data.challengeMode || 'medium',
-          challengeModes: data.challengeModes || {},
-          celebratedToday: data.celebratedToday || '',
-          settings: data.settings || { notificationsEnabled: false },
-        };
+        state = repairShape({ ...data });
         saveState();
         render();
         toast('Imported');
@@ -1026,6 +1144,12 @@
     tick();
 
     scheduleRolloverReset();
+
+    // Cloud sync — pull latest on open, and again when the tab comes back to focus.
+    pullState();
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') pullState();
+    });
 
     // Service worker — for offline caching. Best effort; won't break anything.
     if ('serviceWorker' in navigator) {
