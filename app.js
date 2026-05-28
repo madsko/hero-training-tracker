@@ -11,9 +11,41 @@
     { name: 'sky',    hex: '#b5e3ea', soft: 'rgba(181, 227, 234, 0.16)' },
   ];
 
+  // Pool the daily random challenge rotates through.
+  const CHALLENGES = [
+    { name: 'Push-ups',          goal: 30,  unit: 'reps',     icon: '💪' },
+    { name: 'Squats',            goal: 50,  unit: 'reps',     icon: '🦵' },
+    { name: 'Plank hold',        goal: 60,  unit: 'sec',      icon: '⏱️' },
+    { name: 'Burpees',           goal: 15,  unit: 'reps',     icon: '🔥' },
+    { name: 'Lunges',            goal: 30,  unit: 'reps',     icon: '🚶' },
+    { name: 'Mountain climbers', goal: 50,  unit: 'reps',     icon: '⛰️' },
+    { name: 'Jumping jacks',     goal: 100, unit: 'reps',     icon: '⭐' },
+    { name: 'Wall sit',          goal: 90,  unit: 'sec',      icon: '🧱' },
+    { name: 'Glute bridges',     goal: 30,  unit: 'reps',     icon: '🌉' },
+    { name: 'Russian twists',    goal: 50,  unit: 'reps',     icon: '🌀' },
+    { name: 'Superman hold',     goal: 30,  unit: 'sec',      icon: '🦸' },
+    { name: 'Bicycle crunches',  goal: 40,  unit: 'reps',     icon: '🚴' },
+    { name: 'High knees',        goal: 60,  unit: 'sec',      icon: '👟' },
+    { name: 'Calf raises',       goal: 50,  unit: 'reps',     icon: '🦶' },
+    { name: 'Side plank',        goal: 45,  unit: 'sec/side', icon: '➕' },
+    { name: 'Tricep dips',       goal: 20,  unit: 'reps',     icon: '💺' },
+    { name: 'Stair climbs',      goal: 3,   unit: 'min',      icon: '🪜' },
+    { name: 'Deep squat hold',   goal: 60,  unit: 'sec',      icon: '🧘' },
+    { name: 'Bear crawl',        goal: 30,  unit: 'sec',      icon: '🐻' },
+    { name: 'Sun salutations',   goal: 5,   unit: 'rounds',   icon: '☀️' },
+  ];
+
+  function challengeForDay(dateKey) {
+    let sum = 0;
+    for (let i = 0; i < dateKey.length; i++) sum += dateKey.charCodeAt(i);
+    return CHALLENGES[sum % CHALLENGES.length];
+  }
+
   // ------- State -------
   const defaultState = () => ({
     exercises: [],
+    challengeLogs: {},
+    celebratedToday: '',
     settings: { notificationsEnabled: false },
   });
 
@@ -24,6 +56,8 @@
       const parsed = JSON.parse(raw);
       // Light shape repair so older partial states don't crash.
       if (!parsed.exercises) parsed.exercises = [];
+      if (!parsed.challengeLogs) parsed.challengeLogs = {};
+      if (!('celebratedToday' in parsed)) parsed.celebratedToday = '';
       if (!parsed.settings) parsed.settings = { notificationsEnabled: false };
       return parsed;
     } catch (e) {
@@ -148,10 +182,81 @@
   // ------- Render -------
   function render() {
     renderDayHeader();
+    renderDailyChallenge();
     renderToday();
     renderHistory();
     renderManage();
     updateNotifStatus();
+  }
+
+  function renderDailyChallenge() {
+    const slot = document.getElementById('dailyChallenge');
+    const key = todayKey();
+    const c = challengeForDay(key);
+    const done = !!state.challengeLogs[key];
+    const color = COLORS[0]; // yellow accent for the featured card
+    slot.innerHTML = `
+      <div class="daily-challenge-card ${done ? 'completed' : ''}">
+        <div class="card-head">
+          <div class="card-icon" style="background: ${color.soft}; color: ${color.hex};">${escapeHTML(c.icon)}</div>
+          <div class="card-info">
+            <p class="challenge-label">Daily Challenge</p>
+            <h3 class="card-name">${escapeHTML(c.name)}${done ? ' <span class="card-check">✓</span>' : ''}</h3>
+            <p class="card-progress-text">${c.goal} ${escapeHTML(c.unit)}</p>
+          </div>
+        </div>
+        ${done ? '' : `
+          <div class="quick-actions" style="margin-top:12px;">
+            <button class="quick-btn done" data-action="challenge-done">✓ Complete</button>
+          </div>
+        `}
+      </div>
+    `;
+  }
+
+  // Vanilla DOM confetti — fires once when everything for today gets done.
+  function confetti() {
+    const colors = ['#e9bf5c', '#9c3c37', '#b5e3ea', '#aa8238', '#662422'];
+    const container = document.createElement('div');
+    container.className = 'confetti-container';
+    for (let i = 0; i < 90; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = Math.random() * 100 + '%';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.animationDelay = (Math.random() * 0.3) + 's';
+      piece.style.animationDuration = (2.2 + Math.random() * 1.8) + 's';
+      piece.style.transform = `rotate(${Math.random() * 360}deg)`;
+      container.appendChild(piece);
+    }
+    document.body.appendChild(container);
+    setTimeout(() => container.remove(), 5500);
+  }
+
+  function isAllDoneToday() {
+    const key = todayKey();
+    const allEx = state.exercises.every(ex => isComplete(ex, key));
+    const challengeDone = !!state.challengeLogs[key];
+    return allEx && challengeDone;
+  }
+
+  function maybeCelebrate() {
+    const key = todayKey();
+    if (state.celebratedToday === key) return;
+    if (!isAllDoneToday()) return;
+    state.celebratedToday = key;
+    saveState();
+    confetti();
+    toast('🎉 All done today!');
+  }
+
+  function completeChallenge() {
+    const key = todayKey();
+    if (state.challengeLogs[key]) return;
+    state.challengeLogs[key] = true;
+    saveState();
+    render();
+    maybeCelebrate();
   }
 
   function renderDayHeader() {
@@ -203,7 +308,7 @@
           <div class="card-head" data-action="detail" data-id="${ex.id}">
             <div class="card-icon" style="background: ${color.soft}; color: ${color.hex};">${escapeHTML(ex.icon || '⭐')}</div>
             <div class="card-info">
-              <h3 class="card-name">${escapeHTML(ex.name)}</h3>
+              <h3 class="card-name">${escapeHTML(ex.name)}${completed ? ' <span class="card-check">✓</span>' : ''}</h3>
               <p class="card-progress-text"><strong>${done}</strong> / ${ex.goal} ${escapeHTML(ex.unit || '')}${debt > 0 ? ` <span class="card-debt">· ${debt} debt</span>` : ''}</p>
             </div>
             ${streak > 0 ? `<span class="card-streak ${streak > 0 ? 'active' : ''}">🔥 ${streak}</span>` : ''}
@@ -368,6 +473,7 @@
     } else {
       toast(`Removed ${Math.abs(amount)}`);
     }
+    maybeCelebrate();
   }
 
   function deleteExercise(id) {
@@ -597,6 +703,11 @@
       }
     });
 
+    // Daily challenge click delegation
+    document.getElementById('dailyChallenge').addEventListener('click', (e) => {
+      if (e.target.closest('[data-action="challenge-done"]')) completeChallenge();
+    });
+
     // Manage delegation
     document.getElementById('manageList').addEventListener('click', (e) => {
       const btn = e.target.closest('[data-manage]');
@@ -713,7 +824,12 @@
         const data = JSON.parse(text);
         if (!data || !Array.isArray(data.exercises)) throw new Error('Invalid file');
         if (!confirm('Replace current data with this backup?')) return;
-        state = { exercises: data.exercises, settings: data.settings || { notificationsEnabled: false } };
+        state = {
+          exercises: data.exercises,
+          challengeLogs: data.challengeLogs || {},
+          celebratedToday: data.celebratedToday || '',
+          settings: data.settings || { notificationsEnabled: false },
+        };
         saveState();
         render();
         toast('Imported');
