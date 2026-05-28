@@ -676,6 +676,56 @@ button, .card-head, .cal-cell, .color-swatch, .tab {
   font-weight: 700;
 }
 
+/* Difficulty mode pills */
+.mode-pills {
+  display: flex;
+  gap: 6px;
+  margin-top: 12px;
+}
+.mode-pill {
+  flex: 1;
+  padding: 7px 6px;
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.mode-pill:hover { background: #2a2a31; }
+.mode-pill.active {
+  background: rgba(233, 191, 92, 0.16);
+  color: #e9bf5c;
+  border-color: #e9bf5c;
+}
+.mode-pill[data-mode-pick="easy"].active,
+.mode-pill[data-default-mode="easy"].active {
+  background: rgba(181, 227, 234, 0.16);
+  color: #b5e3ea;
+  border-color: #b5e3ea;
+}
+.mode-pill[data-mode-pick="hard"].active,
+.mode-pill[data-default-mode="hard"].active {
+  background: rgba(170, 130, 56, 0.20);
+  color: #d6a85a;
+  border-color: #aa8238;
+}
+.mode-pill[data-mode-pick="superhero"].active,
+.mode-pill[data-default-mode="superhero"].active {
+  background: rgba(156, 60, 55, 0.22);
+  color: #d4655f;
+  border-color: #9c3c37;
+}
+
+/* Stacked settings row (label above content) */
+.settings-row-stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+}
+
 /* Confetti */
 .confetti-container {
   position: fixed;

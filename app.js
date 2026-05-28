@@ -42,10 +42,28 @@
     return CHALLENGES[sum % CHALLENGES.length];
   }
 
+  // Difficulty modes scale the challenge goal.
+  const MODES = [
+    { id: 'easy',      label: 'Easy',       mult: 0.5 },
+    { id: 'medium',    label: 'Medium',     mult: 1.0 },
+    { id: 'hard',      label: 'Hard',       mult: 1.5 },
+    { id: 'superhero', label: 'Super Hero', mult: 2.0 },
+  ];
+
+  function modeFor(dateKey) {
+    return state.challengeModes[dateKey] || state.challengeMode || 'medium';
+  }
+  function scaledGoal(base, modeId) {
+    const m = MODES.find(x => x.id === modeId) || MODES[1];
+    return Math.max(1, Math.round(base * m.mult));
+  }
+
   // ------- State -------
   const defaultState = () => ({
     exercises: [],
     challengeLogs: {},
+    challengeMode: 'medium',
+    challengeModes: {},
     celebratedToday: '',
     settings: { notificationsEnabled: false },
   });
@@ -58,6 +76,8 @@
       // Light shape repair so older partial states don't crash.
       if (!parsed.exercises) parsed.exercises = [];
       if (!parsed.challengeLogs) parsed.challengeLogs = {};
+      if (!parsed.challengeMode) parsed.challengeMode = 'medium';
+      if (!parsed.challengeModes) parsed.challengeModes = {};
       if (!('celebratedToday' in parsed)) parsed.celebratedToday = '';
       if (!parsed.settings) parsed.settings = { notificationsEnabled: false };
       return parsed;
@@ -187,6 +207,7 @@
     renderToday();
     renderHistory();
     renderManage();
+    renderDefaultMode();
     updateNotifStatus();
   }
 
@@ -195,7 +216,12 @@
     const key = todayKey();
     const c = challengeForDay(key);
     const done = !!state.challengeLogs[key];
+    const mode = modeFor(key);
+    const goal = scaledGoal(c.goal, mode);
     const color = COLORS[0]; // yellow accent for the featured card
+    const pills = MODES.map(m => `
+      <button class="mode-pill ${m.id === mode ? 'active' : ''}" data-mode-pick="${m.id}">${m.label}</button>
+    `).join('');
     slot.innerHTML = `
       <div class="daily-challenge-card ${done ? 'completed' : ''}">
         <div class="card-head">
@@ -203,9 +229,10 @@
           <div class="card-info">
             <p class="challenge-label">Daily Challenge</p>
             <h3 class="card-name">${escapeHTML(c.name)}${done ? ' <span class="card-check">✓</span>' : ''}</h3>
-            <p class="card-progress-text">${c.goal} ${escapeHTML(c.unit)}</p>
+            <p class="card-progress-text">${goal} ${escapeHTML(c.unit)}</p>
           </div>
         </div>
+        <div class="mode-pills">${pills}</div>
         ${done ? '' : `
           <div class="quick-actions" style="margin-top:12px;">
             <button class="quick-btn done" data-action="challenge-done">✓ Complete</button>
@@ -213,6 +240,21 @@
         `}
       </div>
     `;
+  }
+
+  function setChallengeModeToday(modeId) {
+    const key = todayKey();
+    state.challengeModes[key] = modeId;
+    saveState();
+    render();
+  }
+
+  function renderDefaultMode() {
+    const wrap = document.getElementById('defaultModePills');
+    if (!wrap) return;
+    wrap.innerHTML = MODES.map(m => `
+      <button class="mode-pill ${m.id === state.challengeMode ? 'active' : ''}" data-default-mode="${m.id}">${m.label}</button>
+    `).join('');
   }
 
   // Vanilla DOM confetti — fires once when everything for today gets done.
@@ -706,6 +748,8 @@
 
     // Daily challenge click delegation
     document.getElementById('dailyChallenge').addEventListener('click', (e) => {
+      const modeBtn = e.target.closest('[data-mode-pick]');
+      if (modeBtn) { setChallengeModeToday(modeBtn.dataset.modePick); return; }
       if (e.target.closest('[data-action="challenge-done"]')) completeChallenge();
     });
 
@@ -715,6 +759,15 @@
       if (!btn) return;
       if (btn.dataset.manage === 'edit') openEditModal(btn.dataset.id);
       if (btn.dataset.manage === 'delete') deleteExercise(btn.dataset.id);
+    });
+
+    // Default challenge mode picker
+    document.getElementById('defaultModePills').addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-default-mode]');
+      if (!btn) return;
+      state.challengeMode = btn.dataset.defaultMode;
+      saveState();
+      render();
     });
 
     document.getElementById('addExerciseBtn').addEventListener('click', () => openEditModal(null));
@@ -828,6 +881,8 @@
         state = {
           exercises: data.exercises,
           challengeLogs: data.challengeLogs || {},
+          challengeMode: data.challengeMode || 'medium',
+          challengeModes: data.challengeModes || {},
           celebratedToday: data.celebratedToday || '',
           settings: data.settings || { notificationsEnabled: false },
         };
