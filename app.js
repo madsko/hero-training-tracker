@@ -501,10 +501,14 @@
             <div class="progress-fill" style="width: ${pct}%; background: ${color.hex};"></div>
           </div>
           <div class="quick-actions">
-            ${quickButtons}
-            <button class="quick-btn custom" data-action="custom" data-id="${ex.id}">Custom</button>
-            <button class="quick-btn dec" data-action="add" data-id="${ex.id}" data-amount="-${firstQuick}" aria-label="Subtract ${firstQuick}">−${firstQuick}</button>
-            ${completed ? '' : `<button class="quick-btn done" data-action="done" data-id="${ex.id}">✓ Done</button>`}
+            <div class="quick-row quick-row-primary">
+              ${quickButtons}
+            </div>
+            <div class="quick-row quick-row-secondary">
+              <button class="quick-btn custom" data-action="custom" data-id="${ex.id}">Custom</button>
+              <button class="quick-btn dec" data-action="add" data-id="${ex.id}" data-amount="-${firstQuick}" aria-label="Subtract ${firstQuick}">−${firstQuick}</button>
+              ${completed ? '' : `<button class="quick-btn done" data-action="done" data-id="${ex.id}">✓ Done</button>`}
+            </div>
           </div>
         </div>
       `;
@@ -698,6 +702,14 @@
       <button type="button" class="color-swatch ${c.name === pendingColor ? 'selected' : ''}"
               data-color="${c.name}" style="background: ${c.hex};" aria-label="${c.name}"></button>
     `).join('');
+    wrap.querySelectorAll('[data-color]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        pendingColor = btn.dataset.color;
+        renderColorOptions();
+      });
+    });
   }
 
   function closeEditModal() {
