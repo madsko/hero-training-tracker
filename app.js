@@ -13,11 +13,14 @@
 
   // Pool the daily random challenge rotates through.
   const CHALLENGES = [
-    { name: 'Plank hold',      goal: 60, unit: 'sec',      icon: '⏱️' },
-    { name: 'Wall sit',        goal: 90, unit: 'sec',      icon: '🧱' },
-    { name: 'Side plank',      goal: 60, unit: 'sec/side', icon: '➕' },
-    { name: 'Tricep dips',     goal: 20, unit: 'reps',     icon: '💺' },
-    { name: 'Deep squat hold', goal: 60, unit: 'sec',      icon: '🧘' },
+    { name: 'Plank hold',            goal: 60, unit: 'sec',      icon: '⏱️' },
+    { name: 'Wall sit',              goal: 90, unit: 'sec',      icon: '🧱' },
+    { name: 'Side plank',            goal: 60, unit: 'sec/side', icon: '➕' },
+    { name: 'Tricep dips',           goal: 20, unit: 'reps',     icon: '💺' },
+    { name: 'Deep squat hold',       goal: 60, unit: 'sec',      icon: '🧘' },
+    { name: 'Diamond grip push-ups', goal: 20, unit: 'reps',     icon: '💎' },
+    { name: 'Tricep push-ups',       goal: 10, unit: 'reps',     icon: '🔻' },
+    { name: 'Handstand push-ups',    goal: 10, unit: 'reps',     icon: '🤸' },
   ];
 
   function challengeForDay(dateKey) {
