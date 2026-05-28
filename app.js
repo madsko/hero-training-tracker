@@ -342,6 +342,14 @@
     updateNotifStatus();
     renderDailyReminderRow();
     renderSyncRow();
+    requestAnimationFrame(updateScrollMode);
+  }
+
+  function updateScrollMode() {
+    const main = document.querySelector('.main');
+    if (!main) return;
+    const overflows = main.scrollHeight > main.clientHeight + 1;
+    main.classList.toggle('main-scrollable', overflows);
   }
 
   function renderDailyChallenge() {
@@ -943,8 +951,11 @@
         document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
         tab.classList.add('active');
         document.querySelector(`.view[data-view="${tab.dataset.view}"]`).classList.add('active');
+        requestAnimationFrame(updateScrollMode);
       });
     });
+
+    window.addEventListener('resize', () => requestAnimationFrame(updateScrollMode));
 
     // Today view click delegation
     document.getElementById('exerciseList').addEventListener('click', (e) => {
