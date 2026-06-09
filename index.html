@@ -35,6 +35,7 @@
           <div>
             <p class="day-label" id="dayLabel"></p>
             <h2 class="day-date" id="dayDate"></h2>
+            <button class="status-pill" id="statusPill" data-status="active"></button>
           </div>
           <div class="day-stats">
             <div class="stat stat-streak" id="streakStat" hidden>
@@ -191,6 +192,16 @@
             <button type="submit" class="btn btn-primary">Save</button>
           </div>
         </form>
+      </div>
+    </div>
+
+    <!-- Activity status modal -->
+    <div class="modal-overlay hidden" id="statusModal">
+      <div class="modal modal-small" role="dialog" aria-modal="true">
+        <button class="modal-close" data-close="status">✕</button>
+        <h3 class="modal-title">Activity Status</h3>
+        <div class="status-options" id="statusOptions"></div>
+        <p class="status-hint">Carries forward to future days until you change it. Paused days don't affect your streak or debt.</p>
       </div>
     </div>
 

@@ -43,6 +43,31 @@
     return CHALLENGES[sum % CHALLENGES.length];
   }
 
+  // Activity status: carries forward from the most-recent set day.
+  const STATUSES = [
+    { id: 'active',  label: 'Active',     icon: '🏃', desc: 'Staying engaged and healthy' },
+    { id: 'sick',    label: 'Sick',       icon: '🛌', desc: 'Resting from illness' },
+    { id: 'injured', label: 'Injured',    icon: '🩹', desc: 'Recovering from an injury' },
+    { id: 'break',   label: 'On a Break', icon: '🏖️', desc: 'Taking time off from training' },
+  ];
+  function statusInfo(id) { return STATUSES.find(s => s.id === id) || STATUSES[0]; }
+  function statusForDay(dayKey) {
+    const map = state.activityStatus || {};
+    const keys = Object.keys(map).sort();
+    let status = 'active';
+    for (const k of keys) {
+      if (k <= dayKey) status = map[k];
+      else break;
+    }
+    return status;
+  }
+  function setStatusForDay(dayKey, statusId) {
+    if (!state.activityStatus) state.activityStatus = {};
+    state.activityStatus[dayKey] = statusId;
+    saveState();
+    render();
+  }
+
   // Difficulty modes scale the challenge goal.
   const MODES = [
     { id: 'easy',      label: 'Easy',       mult: 0.5 },
@@ -71,6 +96,7 @@
     challengeLogs: {},
     challengeMode: 'medium',
     challengeModes: {},
+    activityStatus: {},
     celebratedToday: '',
     settings: { notificationsEnabled: false },
   });
@@ -80,6 +106,7 @@
     if (!s.challengeLogs) s.challengeLogs = {};
     if (!s.challengeMode) s.challengeMode = 'medium';
     if (!s.challengeModes) s.challengeModes = {};
+    if (!s.activityStatus) s.activityStatus = {};
     if (!('celebratedToday' in s)) s.celebratedToday = '';
     if (!s.settings) s.settings = { notificationsEnabled: false };
     return s;
@@ -254,27 +281,28 @@
     let streak = 0;
     for (let i = 0; i < 365; i++) {
       const key = ymd(daysAgo(i));
+      if (statusForDay(key) !== 'active') continue; // paused day — neither counts nor breaks
       if (isComplete(ex, key)) streak++;
-      else if (i === 0) continue; // today not yet complete doesn't break streak
+      else if (i === 0) continue;
       else break;
     }
     return streak;
   }
   function bestStreak(ex) {
     const keys = Object.keys(ex.logs).sort();
-    let best = 0, run = 0, prev = null;
-    for (const k of keys) {
-      if (!isComplete(ex, k)) { run = 0; prev = null; continue; }
-      if (prev) {
-        const prevDate = new Date(prev + 'T00:00:00');
-        const curDate = new Date(k + 'T00:00:00');
-        const diff = Math.round((curDate - prevDate) / 86400000);
-        run = diff === 1 ? run + 1 : 1;
+    if (keys.length === 0) return 0;
+    let best = 0, run = 0;
+    const start = new Date(keys[0] + 'T00:00:00');
+    const today = new Date(todayKey() + 'T00:00:00');
+    for (let d = new Date(start); d <= today; d.setDate(d.getDate() + 1)) {
+      const k = ymd(d);
+      if (statusForDay(k) !== 'active') continue;
+      if (isComplete(ex, k)) {
+        run++;
+        if (run > best) best = run;
       } else {
-        run = 1;
+        run = 0;
       }
-      best = Math.max(best, run);
-      prev = k;
     }
     return best;
   }
@@ -291,13 +319,16 @@
     const today = new Date(todayK + 'T00:00:00');
     for (let d = new Date(start); d < today; d.setDate(d.getDate() + 1)) {
       const k = ymd(d);
+      if (statusForDay(k) !== 'active') continue; // paused: no accrual, no decay
       const log = ex.logs[k] || 0;
       debt = Math.max(0, debt - Math.max(0, log - ex.goal));
       debt += Math.max(0, ex.goal - log);
       debt *= 0.5;
     }
-    const todayLog = ex.logs[todayK] || 0;
-    debt = Math.max(0, debt - Math.max(0, todayLog - ex.goal));
+    if (statusForDay(todayK) === 'active') {
+      const todayLog = ex.logs[todayK] || 0;
+      debt = Math.max(0, debt - Math.max(0, todayLog - ex.goal));
+    }
     return Math.round(debt);
   }
 
@@ -308,6 +339,7 @@
     let streak = 0;
     for (let i = 0; i < 365; i++) {
       const key = ymd(daysAgo(i));
+      if (statusForDay(key) !== 'active') continue; // paused day — skip
       const relevant = state.exercises.filter(ex => {
         if (!ex.createdAt) return true;
         return ymd(new Date(ex.createdAt)) <= key;
@@ -427,6 +459,7 @@
   function maybeCelebrate() {
     const key = todayKey();
     if (state.celebratedToday === key) return;
+    if (statusForDay(key) !== 'active') return; // no confetti on paused days
     if (!isAllDoneToday()) return;
     state.celebratedToday = key;
     saveState();
@@ -460,6 +493,44 @@
     } else {
       streakEl.hidden = true;
     }
+
+    renderStatusPill();
+  }
+
+  function renderStatusPill() {
+    const pill = document.getElementById('statusPill');
+    if (!pill) return;
+    const s = statusInfo(statusForDay(todayKey()));
+    pill.dataset.status = s.id;
+    pill.innerHTML = `<span class="status-pill-icon">${s.icon}</span><span>${escapeHTML(s.label)}</span>`;
+  }
+
+  function openStatusModal() {
+    const wrap = document.getElementById('statusOptions');
+    const current = statusForDay(todayKey());
+    wrap.innerHTML = STATUSES.map(s => `
+      <button type="button" class="status-option ${s.id === current ? 'selected' : ''}" data-status-pick="${s.id}">
+        <div class="status-option-icon status-icon-${s.id}">${s.icon}</div>
+        <div class="status-option-text">
+          <p class="status-option-name">${escapeHTML(s.label)}</p>
+          <p class="status-option-desc">${escapeHTML(s.desc)}</p>
+        </div>
+        <span class="status-radio ${s.id === current ? 'checked' : ''}"></span>
+      </button>
+    `).join('');
+    wrap.querySelectorAll('[data-status-pick]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setStatusForDay(todayKey(), btn.dataset.statusPick);
+        closeStatusModal();
+        toast(`Status: ${statusInfo(btn.dataset.statusPick).label}`);
+      });
+    });
+    document.getElementById('statusModal').classList.remove('hidden');
+  }
+  function closeStatusModal() {
+    document.getElementById('statusModal').classList.add('hidden');
   }
 
   function renderToday() {
@@ -991,6 +1062,9 @@
       }
     });
 
+    // Status pill opens modal
+    document.getElementById('statusPill').addEventListener('click', openStatusModal);
+
     // Daily challenge click delegation
     document.getElementById('dailyChallenge').addEventListener('click', (e) => {
       const modeBtn = e.target.closest('[data-mode-pick]');
@@ -1025,6 +1099,7 @@
         if (which === 'edit') closeEditModal();
         if (which === 'detail') closeDetail();
         if (which === 'log') closeLogModal();
+        if (which === 'status') closeStatusModal();
       });
     });
     // Click outside modal to close

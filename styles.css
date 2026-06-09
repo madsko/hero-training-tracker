@@ -668,6 +668,83 @@ button, .card-head, .cal-cell, .color-swatch, .tab {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Activity status pill in day header */
+.status-pill {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px 4px 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.status-pill-icon { font-size: 14px; line-height: 1; }
+.status-pill[data-status="active"]  { background: rgba(16, 185, 129, 0.12);  color: #34d399; border-color: rgba(16, 185, 129, 0.35); }
+.status-pill[data-status="sick"]    { background: rgba(233, 191, 92, 0.14);  color: #e9bf5c; border-color: rgba(233, 191, 92, 0.40); }
+.status-pill[data-status="injured"] { background: rgba(196, 75, 69, 0.16);   color: #e07974; border-color: rgba(196, 75, 69, 0.40); }
+.status-pill[data-status="break"]   { background: rgba(181, 227, 234, 0.12); color: #b5e3ea; border-color: rgba(181, 227, 234, 0.35); }
+
+/* Activity status modal options */
+.status-options { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.status-option {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--surface-2);
+  border: 1px solid transparent;
+  border-radius: 16px;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.status-option.selected { border-color: var(--primary); background: rgba(233, 191, 92, 0.08); }
+.status-option-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+.status-icon-active  { background: rgba(16, 185, 129, 0.20); }
+.status-icon-sick    { background: rgba(233, 191, 92, 0.22); }
+.status-icon-injured { background: rgba(196, 75, 69, 0.25); }
+.status-icon-break   { background: rgba(181, 227, 234, 0.18); }
+.status-option-text { flex: 1; min-width: 0; }
+.status-option-name { margin: 0; font-size: 15px; font-weight: 700; }
+.status-option-desc { margin: 2px 0 0; font-size: 12px; color: var(--text-muted); }
+.status-radio {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s;
+}
+.status-radio.checked {
+  background: var(--text);
+  border-color: var(--text);
+  box-shadow: inset 0 0 0 4px var(--surface);
+}
+.status-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
 /* Daily challenge card */
 .daily-challenge-card {
   background: var(--surface);
